@@ -1,0 +1,1 @@
+protoc --proto_path=$GOPATH/src:.  --gofast_out=.  pb.proto

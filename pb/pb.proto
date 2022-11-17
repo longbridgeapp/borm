@@ -1,0 +1,159 @@
+syntax = "proto3";
+package pb;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+
+enum Gender{
+  men = 0;
+  women = 1;
+}
+
+message Person{
+  uint64 id=1;
+  string name = 2[(gogoproto.moretags) = "idx:\"normal\""];
+  string phone=3[(gogoproto.moretags) = "idx:\"unique\""];
+  uint32 age=4[(gogoproto.moretags) = "idx:\"normal\""];
+  uint32 birthDay=5;
+  Gender gender=6;
+}
+
+message Order{
+  uint64 id=1;
+  string account_channel=2[(gogoproto.moretags) = "idx:\"union\""]; 
+  uint64 aaid = 3[(gogoproto.moretags) = "idx:\"union\""];           
+  string order_id=4[(gogoproto.moretags) = "idx:\"union\""];        
+  string org_id=5[(gogoproto.moretags) = "idx:\"normal\""];         
+  string counter_id = 6[(gogoproto.moretags) = "idx:\"normal\""];
+  string currency = 7[(gogoproto.moretags) = "idx:\"normal\""];       
+  string market = 8;         
+  int32 entrust_type = 9;                                             
+  int32 entrust_status = 10;                                           
+  int32 side=11;
+  string entrust_amount = 12;                                           
+  string entrust_qty = 13;     
+}
+
+message IllegalPerson_1{
+  string name = 1[(gogoproto.moretags) = "idx:\"normal\""];
+  string phone=2[(gogoproto.moretags) = "idx:\"unique\""];
+  uint32 age=3[(gogoproto.moretags) = "idx:\"normal\""];
+  uint32 birthDay=4;
+  Gender gender=5;
+}
+
+message IllegalPerson_2{
+  string id=1;
+  string name = 2[(gogoproto.moretags) = "idx:\"normal\""];
+  string phone=3[(gogoproto.moretags) = "idx:\"unique\""];
+  uint32 age=4[(gogoproto.moretags) = "idx:\"normal\""];
+  uint32 birthDay=5;
+  Gender gender=6;
+}
+
+message Detail {
+  string out_standing = 1;        //未交割的
+  string unit_on_hand = 2;        //已交割的
+  string out_standing_frozen = 3; //未交割冻结
+  string unit_on_hand_frozen = 4; //已交割冻结
+}
+
+message AccountInfo {
+  uint64 id=1;
+  string account_channel=2[(gogoproto.moretags) = "idx:\"union\""];        //channel
+  uint64 aaid = 3[(gogoproto.moretags) = "idx:\"union\""];                 //aaid
+  map<string, Detail> cash_books = 4;                                      //现金类账本
+  map<string, Detail> stock_books = 5;                                     //股票类账本
+  AccountProperties account_properties=6;                                  //账户属性
+}
+
+enum AccountType{
+  Margin = 0; //融资账户
+  Cash = 1;   //现金账户
+}
+
+enum AccountLevel{
+  Main = 0; //主账号
+  Sub = 1;  //子账号
+}
+
+enum AccountClass{
+  Personal=0;      //个人
+  Institutional=1; //机构
+}
+
+
+message AccountProperties{
+    string max_finance = 1;           //当前最大融资额度
+    string main_currency = 2;         //主币种
+    string max_trade_credit = 3;      //当前最大交易额度
+    AccountType account_type=4;       //账户类型
+    AccountLevel account_level=5;     //账户级别
+    AccountClass account_class=6;     //账户分类
+}
+
+
+message Account {
+  uint64 id=1;
+  string account_no=2[(gogoproto.moretags) = "idx:\"union\""]; 
+  string phone_number=3[(gogoproto.moretags) = "idx:\"union\""]; 
+  string identification=4[(gogoproto.moretags) = "idx:\"unique\""]; 
+  uint32 gender=5[(gogoproto.moretags) = "idx:\"normal\""]; 
+  uint32 age=6[(gogoproto.moretags) = "idx:\"normal\""]; 
+  string address=7;
+}
+
+message OrderPot{
+  uint64 id=1;
+  string account_channel=2[(gogoproto.moretags) = "idx:\"union\""]; 
+  uint64 aaid = 3[(gogoproto.moretags) = "idx:\"union\""];           
+  int64 order_id=4[(gogoproto.moretags) = "idx:\"union\""];        
+  int64 org_id=5[(gogoproto.moretags) = "idx:\"normal\""];         
+  string counter_id = 6[(gogoproto.moretags) = "idx:\"normal\""];
+  string currency = 7[(gogoproto.moretags) = "idx:\"normal\""];       
+  string market = 8[(gogoproto.moretags) = "idx:\"normal\""];         
+  int32 entrust_type = 9[(gogoproto.moretags) = "idx:\"normal\""];                                             
+  int32 entrust_status = 10[(gogoproto.moretags) = "idx:\"normal\""];                                           
+  int32 side=11;
+  string entrust_amount = 12;                                           
+  string entrust_qty = 13;   
+  int32 liveness=14[(gogoproto.moretags) = "idx:\"normal\""];
+  int32 is_attached=15[(gogoproto.moretags) = "idx:\"normal\""];
+  int32 x3=16;
+  int32 x4=17;
+  int32 x5=18;
+  string x11=19;
+  string x12=20;
+  string x13=21;
+  string x14=22;
+  string x15=23;
+  int32 x16=24;
+  int32 x17=25;
+  int32 x18=26;
+  int32 x19=27;
+  int32 x20=28;
+  string x21=29;
+  string x22=30;
+  string x23=31;
+  string x24=32;
+  string x25=33;
+  int32 x26=34;
+  int32 x27=35;
+  int32 x28=36;
+  int32 x29=37;
+  int32 x30=38;
+  string x31=39;
+  string x32=40;
+  string x33=41;
+  string x34=42;
+  string x35=43;
+  int32 x36=44;
+  int32 x37=45;
+  int32 x38=46;
+  string x39=47;
+  string x40=48;
+}
+
