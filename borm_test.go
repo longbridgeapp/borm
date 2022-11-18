@@ -361,11 +361,11 @@ func TestConcurrentInsert(t *testing.T) {
 			err := db.CreateTable(&pb.Person{})
 			require.NoError(t, err)
 			wait := sync.WaitGroup{}
-			wait.Add(2)
+			wait.Add(3)
 			go func() {
 				for i := 0; i < 10; i++ {
 					db.Insert(&pb.Person{
-						Name:     "jacky",
+						Name:     "a_jacky",
 						Phone:    fmt.Sprintf("+%d", i),
 						Age:      uint32(i),
 						BirthDay: 19901111,
@@ -377,7 +377,21 @@ func TestConcurrentInsert(t *testing.T) {
 			go func() {
 				for i := 0; i < 10; i++ {
 					db.Insert(&pb.Person{
-						Name:     "jacky",
+						Name:     "b_jacky",
+						Phone:    fmt.Sprintf("+%d", i),
+						Age:      uint32(i),
+						BirthDay: 19921111,
+						Gender:   pb.Gender_men,
+					})
+
+				}
+				defer wait.Done()
+			}()
+
+			go func() {
+				for i := 0; i < 10; i++ {
+					db.Insert(&pb.Person{
+						Name:     "c_jacky",
 						Phone:    fmt.Sprintf("+%d", i),
 						Age:      uint32(i),
 						BirthDay: 19921111,
@@ -388,12 +402,19 @@ func TestConcurrentInsert(t *testing.T) {
 				defer wait.Done()
 			}()
 			wait.Wait()
-			i := 0
-			err = db.Foreach(&pb.Person{}, func(item IRow) error {
-				i++
-				return nil
-			})
-			require.Equal(t, i, 10)
+			detail, err := db.Snoop(&pb.Person{})
+			require.NoError(t, err)
+			require.Equal(t, detail.TotalCount, uint64(10))
+
+			require.Equal(t, len(detail.NormalIndex), 2)
+			require.Equal(t, len(detail.UniqueIndex), 1)
+			require.Equal(t, detail.NormalIndex["Name"], uint64(10))
+			require.Equal(t, detail.NormalIndex["Age"], uint64(10))
+			require.Equal(t, detail.UniqueIndex["Phone"], uint64(10))
+
+			rows, err := db.Dump(&pb.Person{})
+			require.NoError(t, err)
+			require.Equal(t, len(rows), 10)
 		})
 	})
 }
@@ -651,13 +672,10 @@ func TestBatchInsert(t *testing.T) {
 				Phone: "15088542234",
 				Age:   30,
 			}
-
 			err = db.BatchInsert(items)
 			require.Equal(t, err, ErrIdxUniqueConflict)
-
 			err = db.BatchInsert(items[:1])
 			require.NoError(t, err)
-
 			results := []string{}
 			err = db.Foreach(&pb.Person{}, func(item IRow) error {
 				results = append(results, item.(*pb.Person).Name)
@@ -698,6 +716,14 @@ func TestTruncate(t *testing.T) {
 		err = db.BatchInsert(items[:1])
 		require.NoError(t, err)
 
+		tableInfo, err := db.Snoop(&pb.Person{})
+		require.NoError(t, err)
+		require.Equal(t, tableInfo.TotalCount, uint64(3))
+		require.Equal(t, tableInfo.UnionIndexCount, uint64(0))
+		require.Equal(t, tableInfo.NormalIndex["Name"], uint64(3))
+		require.Equal(t, tableInfo.NormalIndex["Age"], uint64(3))
+		require.Equal(t, tableInfo.UniqueIndex["Phone"], uint64(3))
+
 		results := []string{}
 		err = db.Foreach(&pb.Person{}, func(item IRow) error {
 			results = append(results, item.(*pb.Person).Name)
@@ -709,13 +735,13 @@ func TestTruncate(t *testing.T) {
 		err = db.Truncate(&pb.Person{})
 		require.NoError(t, err)
 
-		results = []string{}
-		err = db.Foreach(&pb.Person{}, func(item IRow) error {
-			results = append(results, item.(*pb.Person).Name)
-			return nil
-		})
+		tableInfo, err = db.Snoop(&pb.Person{})
 		require.NoError(t, err)
-		require.EqualValues(t, results, []string{})
+		require.Equal(t, tableInfo.TotalCount, uint64(0))
+		require.Equal(t, tableInfo.UnionIndexCount, uint64(0))
+		require.Equal(t, tableInfo.NormalIndex["Name"], uint64(0))
+		require.Equal(t, tableInfo.NormalIndex["Age"], uint64(0))
+		require.Equal(t, tableInfo.UniqueIndex["Phone"], uint64(0))
 	})
 }
 
