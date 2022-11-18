@@ -336,7 +336,7 @@ func BenchmarkQueryIn(b *testing.B) {
 
 func BenchmarkQueryEq(b *testing.B) {
 	b.StopTimer()
-	db, err := borm.New()
+	db, err := borm.New(borm.WithLoggingLevel(borm.INFO))
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -344,6 +344,7 @@ func BenchmarkQueryEq(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	orderPots := []borm.IRow{}
 	for i := 0; i < 100000; i++ {
 		liveness := 0
 		aaid := 1111
@@ -366,10 +367,12 @@ func BenchmarkQueryEq(b *testing.B) {
 			Liveness:       int32(liveness),
 			IsAttached:     0,
 		}
-		err = db.Insert(orderPot)
-		if err != nil {
-			b.Fatal(err)
-		}
+		orderPots = append(orderPots, orderPot)
+
+	}
+	err = db.BatchInsert(orderPots)
+	if err != nil {
+		b.Fatal(err)
 	}
 	b.StartTimer()
 

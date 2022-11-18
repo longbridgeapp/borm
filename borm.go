@@ -23,11 +23,25 @@ type TableDetails struct {
 	UniqueIndex     map[string]uint64
 }
 
-func New() (*BormDb, error) {
-	db, err := badger.Open(
-		badger.DefaultOptions("").
-			WithInMemory(true).
-			WithLoggingLevel(badger.WARNING))
+func New(opts ...Option) (*BormDb, error) {
+	optConfig := newOptions(opts...)
+
+	badgerConfig := badger.DefaultOptions("")
+	badgerConfig = badgerConfig.WithInMemory(true)
+
+	switch optConfig.Logger.GetLogLevel() {
+	case DEBUG:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.DEBUG)
+	case INFO:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.INFO)
+	case WARNING:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.WARNING)
+	case ERROR:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.ERROR)
+	default:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.INFO)
+	}
+	db, err := badger.Open(badgerConfig)
 	if err != nil {
 		return nil, err
 	}
