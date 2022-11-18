@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"borm/pb"
+	"github.com/longbridgeapp/borm/pb"
 
 	"github.com/dgraph-io/badger/v3"
 	"github.com/stretchr/testify/require"

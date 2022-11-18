@@ -1,12 +1,13 @@
 package main
 
 import (
-	"borm"
-	"borm/pb"
 	"flag"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/longbridgeapp/borm"
+	"github.com/longbridgeapp/borm/pb"
 )
 
 var (

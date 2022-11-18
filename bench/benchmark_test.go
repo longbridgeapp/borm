@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"borm"
-	"borm/common"
-	"borm/pb"
+	"github.com/longbridgeapp/borm"
+	"github.com/longbridgeapp/borm/common"
+	"github.com/longbridgeapp/borm/pb"
 )
 
 func BenchmarkInsert(b *testing.B) {

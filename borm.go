@@ -1,7 +1,7 @@
 package borm
 
 import (
-	"borm/common"
+	"github.com/longbridgeapp/borm/common"
 	"bytes"
 	"fmt"
 	"sort"
