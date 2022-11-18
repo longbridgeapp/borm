@@ -427,7 +427,7 @@ func TestConcurrentQuery(t *testing.T) {
 			wait := sync.WaitGroup{}
 			wait.Add(2)
 			go func() {
-				for i := 0; i < 10; i++ {
+				for i := 0; i < 100; i++ {
 					db.Insert(&pb.Person{
 						Name:     "jacky",
 						Phone:    fmt.Sprintf("+%d", i),
@@ -441,16 +441,12 @@ func TestConcurrentQuery(t *testing.T) {
 
 			go func() {
 				for {
-					results := []string{}
-					err = db.Foreach(&pb.Person{}, func(item IRow) error {
-						results = append(results, item.(*pb.Person).Phone)
-						return nil
-					})
+					results, err := db.Dump(&pb.Person{})
 					require.NoError(t, err)
-					if len(results) > 0 {
-						fmt.Println(results)
-					}
-					if len(results) == 10 {
+					if len(results) == 100 {
+						result, err := Last(db, WithAnd(&pb.Person{}).Eq("Name", "jacky"))
+						require.NoError(t, err)
+						require.Equal(t, result.Age, uint32(99))
 						break
 					}
 				}

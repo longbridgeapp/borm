@@ -1,0 +1,24 @@
+syntax = "proto3";
+package definition;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+
+enum Gender{
+  men = 0;
+  women = 1;
+}
+
+message Account{
+  uint64 id=1;
+  string name = 2[(gogoproto.moretags) = "idx:\"normal\""];
+  string identity_id=3[(gogoproto.moretags) = "idx:\"unique\""];
+  string phone_number=4[(gogoproto.moretags) = "idx:\"union\""];
+  string country=5[(gogoproto.moretags) = "idx:\"union\""];
+  uint32 age=6[(gogoproto.moretags) = "idx:\"normal\""];
+  Gender gender=7;
+}
+
