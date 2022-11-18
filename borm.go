@@ -23,11 +23,25 @@ type TableDetails struct {
 	UniqueIndex     map[string]uint64
 }
 
-func New() (*BormDb, error) {
-	db, err := badger.Open(
-		badger.DefaultOptions("").
-			WithInMemory(true).
-			WithLoggingLevel(badger.WARNING))
+func New(opts ...Option) (*BormDb, error) {
+	optConfig := newOptions(opts...)
+
+	badgerConfig := badger.DefaultOptions("")
+	badgerConfig = badgerConfig.WithInMemory(true)
+	badgerConfig = badgerConfig.WithMemTableSize(optConfig.MemTableSize)
+	switch optConfig.Logger.GetLogLevel() {
+	case DEBUG:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.DEBUG)
+	case INFO:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.INFO)
+	case WARNING:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.WARNING)
+	case ERROR:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.ERROR)
+	default:
+		badgerConfig = badgerConfig.WithLoggingLevel(badger.INFO)
+	}
+	db, err := badger.Open(badgerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -446,6 +460,8 @@ func (bormDb *BormDb) GetFieldValWithFieldIndex(item IRow, fieldIdx uint32) (any
 	return val, nil
 }
 
+//Dump
+//dump table all row data, that this is not in order
 func (bormDb *BormDb) Dump(tp IRow) ([]IRow, error) {
 	results := []IRow{}
 	bormDb.Foreach(tp, func(row IRow) error {
@@ -455,6 +471,8 @@ func (bormDb *BormDb) Dump(tp IRow) ([]IRow, error) {
 	return results, nil
 }
 
+//Snoop
+//output all table row data count, index count
 func (bormDb *BormDb) Snoop(tp IRow) (*TableDetails, error) {
 	tableName := tp.GetTableName()
 	id, err := bormDb.tableManager.GetTableId(tableName)

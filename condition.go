@@ -69,7 +69,7 @@ func (c *BaseCompoundCondition[T]) queryInRowIds(txn *badger.Txn, db *BormDb, ta
 					val:       value,
 				})
 			}
-			ids, err := c.subQueryV2(txn, db, tableId, fieldValues)
+			ids, err := c.subQuery(txn, db, tableId, fieldValues)
 			if err != nil {
 				return nil, err
 			}
@@ -89,7 +89,7 @@ func (c *BaseCompoundCondition[T]) queryEqRowIds(txn *badger.Txn, db *BormDb, ta
 			val:       element.Value,
 		}
 	}
-	return c.subQueryV2(txn, db, tableId, fieldValues)
+	return c.subQuery(txn, db, tableId, fieldValues)
 }
 
 type fieldKeyValue struct {
@@ -97,7 +97,7 @@ type fieldKeyValue struct {
 	val       any
 }
 
-func (c *BaseCompoundCondition[T]) subQueryV2(txn *badger.Txn, db *BormDb, tableId uint32, fieldValues []fieldKeyValue) ([]uint64, error) {
+func (c *BaseCompoundCondition[T]) subQuery(txn *badger.Txn, db *BormDb, tableId uint32, fieldValues []fieldKeyValue) ([]uint64, error) {
 	uniqueIdxMap := map[uint32]any{}
 	unionIdxMap := map[uint32]any{}
 	normalIdxMap := orderedmap.NewOrderedMap[uint32, any]()
@@ -207,7 +207,7 @@ func (c *BaseCompoundCondition[T]) queryRowIds(txn *badger.Txn, db *BormDb) ([]u
 
 func (c *BaseCompoundCondition[T]) exec(txn *badger.Txn, db *BormDb) ([]T, error) {
 
-	start := time.Now()
+	//start := time.Now()
 
 	ids, err := c.queryRowIds(txn, db)
 	if err != nil {
@@ -219,7 +219,7 @@ func (c *BaseCompoundCondition[T]) exec(txn *badger.Txn, db *BormDb) ([]T, error
 	} else {
 		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	}
-	db.db.Opts().Logger.Infof("[%v][rows:%v]", time.Since(start), len(ids))
+	//db.db.Opts().Logger.Infof("[%v][rows:%v]", time.Since(start), len(ids))
 	results := []T{}
 	err = db.TxQueryWithPk(txn, c.row, ids, func(row IRow) error {
 		results = append(results, row.(T))

@@ -281,9 +281,12 @@ func BenchmarkSimulatedCreateNewOrder(b *testing.B) {
 	}
 }
 
+//BenchmarkQueryIn-12         1101           1117096 ns/op          389150 B/op       8881 allocs/op
+//BenchmarkQueryIn-12         1240            976675 ns/op          360781 B/op       7804 allocs/op
+//BenchmarkQueryIn-12         1250            904871 ns/op          288364 B/op       6104 allocs/op
 func BenchmarkQueryIn(b *testing.B) {
 	b.StopTimer()
-	db, err := borm.New()
+	db, err := borm.New(borm.WithLoggingLevel(borm.WARNING))
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -336,7 +339,7 @@ func BenchmarkQueryIn(b *testing.B) {
 
 func BenchmarkQueryEq(b *testing.B) {
 	b.StopTimer()
-	db, err := borm.New()
+	db, err := borm.New(borm.WithLoggingLevel(borm.WARNING))
 	if err != nil {
 		b.Fatal(err)
 	}

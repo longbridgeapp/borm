@@ -41,7 +41,7 @@ func TestCreateTable(t *testing.T) {
 }
 
 func TestManageTable(t *testing.T) {
-	t.Run("dump", func(t *testing.T) {
+	t.Run("Snoop", func(t *testing.T) {
 		runNewBorm(t, func(t *testing.T, db *BormDb) {
 			err := db.CreateTable(&pb.AccountInfo{})
 			require.NoError(t, err)
@@ -91,6 +91,43 @@ func TestManageTable(t *testing.T) {
 			require.Equal(t, len(detail.UniqueIndex), 0)
 			require.Equal(t, detail.NormalIndex["AccountChannel"], uint64(0))
 			require.Equal(t, detail.NormalIndex["Aaid"], uint64(0))
+		})
+	})
+
+	t.Run("Dump", func(t *testing.T) {
+		runNewBorm(t, func(t *testing.T, db *BormDb) {
+			err := db.CreateTable(&pb.AccountInfo{})
+			require.NoError(t, err)
+
+			detail, err := db.Snoop(&pb.AccountInfo{})
+			require.NoError(t, err)
+			require.Equal(t, detail.TotalCount, uint64(0))
+			require.Equal(t, detail.TotalCount, uint64(0))
+			require.Equal(t, len(detail.NormalIndex), 2)
+			require.Equal(t, len(detail.UniqueIndex), 0)
+			require.Equal(t, detail.NormalIndex["AccountChannel"], uint64(0))
+			require.Equal(t, detail.NormalIndex["Aaid"], uint64(0))
+
+			items := []IRow{}
+			for i := 0; i < 1000; i++ {
+				accountInfo := &pb.AccountInfo{
+					Aaid:           uint64(10000 + i),
+					AccountChannel: "lb",
+					CashBooks:      make(map[string]*pb.Detail),
+					StockBooks:     make(map[string]*pb.Detail),
+					AccountProperties: &pb.AccountProperties{
+						MainCurrency: "HKD",
+						MaxFinance:   "10000",
+					},
+				}
+				items = append(items, accountInfo)
+			}
+			err = db.BatchInsert(items)
+			require.NoError(t, err)
+
+			results, err := db.Dump(&pb.AccountInfo{})
+			require.NoError(t, err)
+			require.Equal(t, len(results), 1000)
 		})
 	})
 }
@@ -1341,6 +1378,65 @@ func TestFirstOrLast(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, len(result), 0)
 		})
+		runNewBorm(t, func(t *testing.T, db *BormDb) {
+			err := db.CreateTable(&pb.AccountInfo{})
+			require.NoError(t, err)
+
+			for i := 0; i < 10; i++ {
+				accountInfo := &pb.AccountInfo{
+					Aaid:           uint64(10000 + i),
+					AccountChannel: "lb",
+					CashBooks:      make(map[string]*pb.Detail),
+					StockBooks:     make(map[string]*pb.Detail),
+					AccountProperties: &pb.AccountProperties{
+						MainCurrency: "HKD",
+						MaxFinance:   fmt.Sprint(i + 100000),
+					},
+				}
+				err = db.Insert(accountInfo)
+				require.NoError(t, err)
+			}
+			result, err := First(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb"))
+			require.NoError(t, err)
+			require.Equal(t, result.Id, uint64(6))
+			require.Equal(t, result.AccountProperties.MaxFinance, "100005")
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("AccountChannel", "lb"))
+			require.NoError(t, err)
+			require.Equal(t, result.Id, uint64(1))
+			require.Equal(t, result.AccountProperties.MaxFinance, "100000")
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("AccountChannel", "lb_sg"))
+			require.ErrorIs(t, err, ErrKeyNotFound)
+			require.Equal(t, result == nil, true)
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb_sg"))
+			require.ErrorIs(t, err, ErrKeyNotFound)
+			require.Equal(t, result == nil, true)
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("account_properties", "test"))
+			require.ErrorIs(t, err, ErrIdxNotSupport)
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("Aaid", uint64(10006)))
+			require.ErrorIs(t, err, ErrQueryInvalid)
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)))
+			require.NoError(t, err)
+			require.Equal(t, result.Id, uint64(6))
+			require.Equal(t, result.AccountProperties.MaxFinance, "100005")
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("Aaid", uint64(10005)))
+			require.ErrorIs(t, err, ErrQueryInvalid)
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb"))
+			require.NoError(t, err)
+			require.Equal(t, result.Id, uint64(6))
+			require.Equal(t, result.AccountProperties.MaxFinance, "100005")
+
+			result, err = First(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb_sg"))
+			require.ErrorIs(t, err, ErrKeyNotFound)
+			require.Equal(t, result == nil, true)
+		})
 	})
 
 	t.Run("Last", func(t *testing.T) {
@@ -1403,6 +1499,69 @@ func TestFirstOrLast(t *testing.T) {
 			result, err = Find(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb_sg").SortBy(true).Limit(0, 1))
 			require.NoError(t, err)
 			require.Equal(t, len(result), 0)
+		})
+		runNewBorm(t, func(t *testing.T, db *BormDb) {
+			err := db.CreateTable(&pb.AccountInfo{})
+			require.NoError(t, err)
+
+			for i := 0; i < 10; i++ {
+				accountInfo := &pb.AccountInfo{
+					Aaid:           uint64(10000 + i),
+					AccountChannel: "lb",
+					CashBooks:      make(map[string]*pb.Detail),
+					StockBooks:     make(map[string]*pb.Detail),
+					AccountProperties: &pb.AccountProperties{
+						MainCurrency: "HKD",
+						MaxFinance:   fmt.Sprint(i + 100000),
+					},
+				}
+				err = db.Insert(accountInfo)
+				require.NoError(t, err)
+			}
+
+			result, err := Last(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb"))
+			require.NoError(t, err)
+			require.Equal(t, result.Id, uint64(6))
+			require.Equal(t, result.AccountProperties.MaxFinance, "100005")
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("AccountChannel", "lb"))
+			require.NoError(t, err)
+			require.Equal(t, result.Id, uint64(10))
+			require.Equal(t, result.AccountProperties.MaxFinance, "100009")
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("AccountChannel", "lb_sg"))
+			require.ErrorIs(t, err, ErrKeyNotFound)
+			require.Equal(t, result == nil, true)
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb_sg"))
+			require.ErrorIs(t, err, ErrKeyNotFound)
+			require.Equal(t, result == nil, true)
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("account_properties", "test"))
+			require.ErrorIs(t, err, ErrIdxNotSupport)
+			require.Equal(t, result == nil, true)
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("Aaid", uint64(10006)))
+			require.ErrorIs(t, err, ErrQueryInvalid)
+			require.Equal(t, result == nil, true)
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)))
+			require.NoError(t, err)
+			require.Equal(t, result.Id, uint64(6))
+			require.Equal(t, result.AccountProperties.MaxFinance, "100005")
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("Aaid", uint64(10005)))
+			require.ErrorIs(t, err, ErrQueryInvalid)
+			require.Equal(t, result == nil, true)
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb"))
+			require.NoError(t, err)
+			require.Equal(t, result.Id, uint64(6))
+			require.Equal(t, result.AccountProperties.MaxFinance, "100005")
+
+			result, err = Last(db, WithAnd(&pb.AccountInfo{}).Eq("Aaid", uint64(10005)).Eq("AccountChannel", "lb_sg"))
+			require.ErrorIs(t, err, ErrKeyNotFound)
+			require.Equal(t, result == nil, true)
 		})
 	})
 }
