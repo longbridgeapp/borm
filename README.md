@@ -91,7 +91,7 @@ func inQuery(db *borm.BormDb) {
 
 	ss = [][]any{}
 	ss = append(ss, []any{"jack", "US"}, []any{"rose", "UK"})
-	//select * from account where Name in(('jack','US'),('rose','UK'))
+	//select * from account where (Name,Country) in(('jack','US'),('rose','UK'))
 	accounts, err = borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Name", "Country"}, ss))
 	if err != nil {
 		log.Fatal(err)
