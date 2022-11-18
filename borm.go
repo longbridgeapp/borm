@@ -28,7 +28,7 @@ func New(opts ...Option) (*BormDb, error) {
 
 	badgerConfig := badger.DefaultOptions("")
 	badgerConfig = badgerConfig.WithInMemory(true)
-
+	badgerConfig = badgerConfig.WithMemTableSize(optConfig.MemTableSize)
 	switch optConfig.Logger.GetLogLevel() {
 	case DEBUG:
 		badgerConfig = badgerConfig.WithLoggingLevel(badger.DEBUG)
@@ -460,6 +460,8 @@ func (bormDb *BormDb) GetFieldValWithFieldIndex(item IRow, fieldIdx uint32) (any
 	return val, nil
 }
 
+//Dump
+//dump table all row data, that this is not in order
 func (bormDb *BormDb) Dump(tp IRow) ([]IRow, error) {
 	results := []IRow{}
 	bormDb.Foreach(tp, func(row IRow) error {
@@ -469,6 +471,8 @@ func (bormDb *BormDb) Dump(tp IRow) ([]IRow, error) {
 	return results, nil
 }
 
+//Snoop
+//output all table row data count, index count
 func (bormDb *BormDb) Snoop(tp IRow) (*TableDetails, error) {
 	tableName := tp.GetTableName()
 	id, err := bormDb.tableManager.GetTableId(tableName)
