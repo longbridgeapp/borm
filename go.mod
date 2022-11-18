@@ -1,4 +1,4 @@
-module borm
+module github.com/longbridgeapp/borm
 
 go 1.18
 
