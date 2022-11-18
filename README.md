@@ -59,8 +59,8 @@ func main() {
 #### Index Based Query
 ```go
 //unique index query
-//select * from account where IdentityId='330683199212122018' limit 1
 func indexQuery(db *borm.BormDb) {
+    //select * from account where IdentityId='330683199212122018' limit 1
 	account, err := borm.First(db, borm.WithAnd(&definition.Account{}).Eq("IdentityId", "330683199212122018"))
 	if err != nil {
 		log.Fatal(err)
@@ -69,18 +69,41 @@ func indexQuery(db *borm.BormDb) {
 }
 
 //normal index query
-//select * from account where Name='jacky' and Age=30
 func normalIndexQuery(db *borm.BormDb) {
+    //select * from account where Name='jacky' and Age=30
 	accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).Eq("Name", "jacky").Eq("Age", uint32(30)))
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("accounts info:%+v", accounts)
 }
+
 //union index query
-//select * from account where PhoneNumber='+8613575468007' and Country='China'
-func unionIndexQuery(db *borm.BormDb) {
-	accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).Eq("PhoneNumber", "+8613575468007").Eq("Country", "China"))
+func inQuery(db *borm.BormDb) {
+	ss := [][]any{}
+	ss = append(ss, []any{"jack"}, []any{"rose"})
+	//select * from account where Name in('jack','rose')
+	accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Name"}, ss))
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("accounts info:%+v", accounts)
+
+	ss = [][]any{}
+	ss = append(ss, []any{"jack", "US"}, []any{"rose", "UK"})
+	//select * from account where Name in(('jack','US'),('rose','UK'))
+	accounts, err = borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Name", "Country"}, ss))
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("accounts info:%+v", accounts)
+}
+
+func multipleConditionQuery(db *borm.BormDb) {
+	ss := [][]any{}
+	ss = append(ss, []any{30}, []any{31}, []any{32}, []any{33}, []any{34})
+	//select * from account where Age in(30,31,32,33,34) and Country='China' order by Age limit 100
+	accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Age"}, ss).Eq("Country", "China").SortBy(true, "Age").Limit(0, 100))
 	if err != nil {
 		log.Fatal(err)
 	}
