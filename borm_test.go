@@ -314,8 +314,8 @@ func TestUniqueIndex(t *testing.T) {
 	})
 }
 
-func TestConcurrentInsert(t *testing.T) {
-	t.Run("no conflict", func(t *testing.T) {
+func TestConcurrent(t *testing.T) {
+	t.Run("insert no conflict", func(t *testing.T) {
 		runNewBorm(t, func(t *testing.T, db *BormDb) {
 			err := db.CreateTable(&pb.Person{})
 			require.NoError(t, err)
@@ -356,7 +356,7 @@ func TestConcurrentInsert(t *testing.T) {
 			require.Equal(t, i, 20)
 		})
 	})
-	t.Run("uq conflict", func(t *testing.T) {
+	t.Run("insert uq conflict", func(t *testing.T) {
 		runNewBorm(t, func(t *testing.T, db *BormDb) {
 			err := db.CreateTable(&pb.Person{})
 			require.NoError(t, err)
@@ -402,6 +402,67 @@ func TestConcurrentInsert(t *testing.T) {
 				defer wait.Done()
 			}()
 			wait.Wait()
+			detail, err := db.Snoop(&pb.Person{})
+			require.NoError(t, err)
+			require.Equal(t, detail.TotalCount, uint64(10))
+
+			require.Equal(t, len(detail.NormalIndex), 2)
+			require.Equal(t, len(detail.UniqueIndex), 1)
+			require.Equal(t, detail.NormalIndex["Name"], uint64(10))
+			require.Equal(t, detail.NormalIndex["Age"], uint64(10))
+			require.Equal(t, detail.UniqueIndex["Phone"], uint64(10))
+
+			rows, err := db.Dump(&pb.Person{})
+			require.NoError(t, err)
+			require.Equal(t, len(rows), 10)
+		})
+	})
+
+	t.Run("update uq conflict", func(t *testing.T) {
+		runNewBorm(t, func(t *testing.T, db *BormDb) {
+			err := db.CreateTable(&pb.Person{})
+			require.NoError(t, err)
+			for i := 0; i < 10; i++ {
+				db.Insert(&pb.Person{
+					Name:     "jacky",
+					Phone:    fmt.Sprintf("+%d", i),
+					Age:      uint32(i),
+					BirthDay: 19901111,
+					Gender:   pb.Gender_men,
+				})
+			}
+			//fmt.Println(db.Dump(&pb.Person{}))
+			wait := sync.WaitGroup{}
+			wait.Add(2)
+			go func() {
+				for i := 0; i < 10; i++ {
+					err = db.Update(uint64(i+1), &pb.Person{
+						Name:     "a_jacky",
+						Phone:    fmt.Sprintf("+%d", i),
+						Age:      uint32(i),
+						BirthDay: 19901111,
+						Gender:   pb.Gender_men,
+					})
+					require.NoError(t, err)
+				}
+				defer wait.Done()
+			}()
+			go func() {
+				for i := 0; i < 10; i++ {
+					err = db.Update(uint64(i+1), &pb.Person{
+						Name:     "b_jacky",
+						Phone:    fmt.Sprintf("+%d", i),
+						Age:      uint32(i),
+						BirthDay: 19901111,
+						Gender:   pb.Gender_men,
+					})
+					require.NoError(t, err)
+				}
+				defer wait.Done()
+			}()
+
+			wait.Wait()
+			//fmt.Println(db.Dump(&pb.Person{}))
 			detail, err := db.Snoop(&pb.Person{})
 			require.NoError(t, err)
 			require.Equal(t, detail.TotalCount, uint64(10))
@@ -896,16 +957,16 @@ func TestUpdate(t *testing.T) {
 
 		require.EqualValues(t, &pb.Person{
 			Id:    results[0].Id,
-			Name:  "jim",
-			Phone: "15088434235",
-			Age:   34,
+			Name:  "jacky",
+			Phone: "15088434234",
+			Age:   35,
 		}, results[0])
 
 		require.EqualValues(t, &pb.Person{
 			Id:    results[1].Id,
-			Name:  "jacky",
-			Phone: "15088434234",
-			Age:   35,
+			Name:  "jim",
+			Phone: "15088434235",
+			Age:   34,
 		}, results[1])
 	})
 	runNewBorm(t, func(t *testing.T, db *BormDb) {
@@ -935,6 +996,58 @@ func TestUpdate(t *testing.T) {
 		require.NoError(t, err)
 		for i := 0; i < len(results); i++ {
 			require.Equal(t, results[i].BirthDay, uint32(19921016))
+		}
+	})
+
+	runNewBorm(t, func(t *testing.T, db *BormDb) {
+		err := db.CreateTable(&pb.Person{})
+		require.NoError(t, err)
+
+		for i := 0; i < 10; i++ {
+			db.Insert(&pb.Person{
+				Name:     "jacky",
+				Phone:    fmt.Sprintf("+%d", i),
+				Age:      uint32(i),
+				BirthDay: 19901111,
+				Gender:   pb.Gender_men,
+			})
+		}
+
+		tx := db.Begin(true)
+
+		err = db.TxUpdate(tx, 1, &pb.Person{
+			Name:     "jacky",
+			Phone:    "+0",
+			Age:      31,
+			BirthDay: 19901111,
+			Gender:   pb.Gender_men,
+		})
+		require.NoError(t, err)
+		err = db.TxUpdate(tx, 2, &pb.Person{
+			Name:     "jacky",
+			Phone:    "+1",
+			Age:      32,
+			BirthDay: 19901111,
+			Gender:   pb.Gender_men,
+		})
+		require.NoError(t, err)
+		err = db.TxUpdate(tx, 3, &pb.Person{
+			Name:     "jacky",
+			Phone:    "+0",
+			Age:      33,
+			BirthDay: 19901111,
+			Gender:   pb.Gender_men,
+		})
+		require.ErrorIs(t, err, ErrIdxUniqueConflict)
+
+		if err != nil {
+			tx.Discard()
+		}
+		results, err := Find(db, WithAnd(&pb.Person{}).Eq("Name", "jacky"))
+		require.NoError(t, err)
+		for i := 0; i < 10; i++ {
+			require.Equal(t, results[i].Age, uint32(i))
+
 		}
 	})
 }

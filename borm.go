@@ -15,6 +15,8 @@ import (
 type BormDb struct {
 	db           *badger.DB
 	tableManager *TableManager
+
+	optConfig *Options
 }
 
 type TableDetails struct {
@@ -26,7 +28,6 @@ type TableDetails struct {
 
 func New(opts ...Option) (*BormDb, error) {
 	optConfig := newOptions(opts...)
-
 	badgerConfig := badger.DefaultOptions("")
 	badgerConfig = badgerConfig.WithInMemory(true)
 	badgerConfig = badgerConfig.WithMemTableSize(optConfig.MemTableSize)
@@ -47,6 +48,7 @@ func New(opts ...Option) (*BormDb, error) {
 		return nil, err
 	}
 	return &BormDb{
+		optConfig:    optConfig,
 		db:           db,
 		tableManager: newTableManager(),
 	}, nil
@@ -76,6 +78,7 @@ func (bormDb *BormDb) Insert(row IRow) error {
 		return bormDb.TxInsert(txn, row)
 	})
 	if err == badger.ErrConflict {
+		bormDb.optConfig.Logger.Warningf("Txn Insert conflict, [%+v]\n", row)
 		return bormDb.Insert(row)
 	}
 	return err
@@ -118,6 +121,7 @@ func (bormDb *BormDb) BatchInsert(rows []IRow) error {
 		return nil
 	})
 	if err == badger.ErrConflict {
+		bormDb.optConfig.Logger.Warningf("Txn BatchInsert conflict,%v\n", rows)
 		return bormDb.BatchInsert(rows)
 	}
 	return err
@@ -138,6 +142,7 @@ func (bormDb *BormDb) Delete(rowId uint64, row IRow) error {
 		return bormDb.TxDelete(txn, rowId, row)
 	})
 	if err == badger.ErrConflict {
+		bormDb.optConfig.Logger.Warningf("Txn Delete conflict,id=%v\n", rowId)
 		return bormDb.Delete(rowId, row)
 	}
 	return err
@@ -174,18 +179,45 @@ func (bormDb *BormDb) Update(rowId uint64, newRow IRow) error {
 		return bormDb.TxUpdate(txn, rowId, newRow)
 	})
 	if err == badger.ErrConflict {
-		bormDb.db.Opts().Logger.Warningf("Txn Update conflict,%v\n", newRow)
+		bormDb.optConfig.Logger.Warningf("Txn Update conflict,%v\n", newRow)
 		return bormDb.Update(rowId, newRow)
 	}
 	return err
 }
 
 func (bormDb *BormDb) TxUpdate(tx *badger.Txn, rowId uint64, newRow IRow) error {
-	err := bormDb.TxDelete(tx, rowId, newRow)
+	tableName := newRow.GetTableName()
+	tableId, err := bormDb.tableManager.GetTableId(tableName)
 	if err != nil {
 		return err
 	}
-	return bormDb.TxInsert(tx, newRow)
+	pk := encodePKey(tableId, rowId)
+	item, err := tx.Get(pk)
+	if err != nil {
+		return err
+	}
+	tpl := newRow.Clone().(IRow)
+	err = item.Value(func(val []byte) error {
+		return tpl.Unmarshal(val)
+	})
+	if err != nil {
+		return err
+	}
+	err = bormDb.deleteIndex(tableId, tpl, tx)
+	if err != nil {
+		return err
+	}
+
+	err = bormDb.createIndex(tableId, newRow, tx, rowId)
+	if err != nil {
+		return err
+	}
+	common.SetUint64(newRow, rowId)
+	bs, err := newRow.Marshal()
+	if err != nil {
+		return err
+	}
+	return tx.Set(pk, bs)
 }
 
 //Truncate table, not support tx
@@ -392,7 +424,7 @@ func (bormDb *BormDb) Foreach(row IRow, f func(IRow) error) error {
 		return bormDb.TxForeach(txn, row, f)
 	})
 	if err == badger.ErrConflict {
-		bormDb.db.Opts().Logger.Warningf("Foreach Txn read conflict,%v\n", row)
+		bormDb.optConfig.Logger.Warningf("Txn Foreach conflict,%v\n", row)
 		return bormDb.Foreach(row, f)
 	}
 	return err
@@ -404,7 +436,7 @@ func (bormDb *BormDb) Count(row IRow) (count uint64, err error) {
 		return err
 	})
 	if err == badger.ErrConflict {
-		bormDb.db.Opts().Logger.Warningf("Count Txn read conflict,%v\n", row)
+		bormDb.optConfig.Logger.Warningf("Txn Count conflict,%v\n", row)
 		return bormDb.Count(row)
 	}
 	return
@@ -512,28 +544,6 @@ func (bormDb *BormDb) countWithPrefix(txn *badger.Txn, prefix []byte) uint64 {
 		count++
 	}
 	return count
-}
-
-func (bormDb *BormDb) createUnionIndex(tableId uint32, item IRow, txn *badger.Txn, next uint64, unionTags []uint32, indexTags map[uint32]*tag) error {
-	if len(unionTags) == 0 {
-		return nil
-	}
-	ptr0 := common.GetUnsafeInterfaceUintptr(item)
-	indexContent := ""
-	for _, fieldIdx := range unionTags {
-		tag, ok := indexTags[fieldIdx]
-		if !ok {
-			bormDb.db.Opts().Logger.Warningf("Union tag not found in indexTags,%v,%v\n", unionTags, indexTags)
-			return ErrIdxNotSupport
-		}
-		val := tag.GetPointerVal(unsafe.Pointer(uintptr(ptr0) + tag.offset))
-		indexContent += fmt.Sprintf("%v:%v", fieldIdx, val)
-	}
-	key := encodeUnionIndexKey(tableId, indexContent)
-	if _, err := txn.Get(key); err == nil {
-		return ErrIdxUniqueConflict
-	}
-	return txn.Set(key, common.EncodedFromUInt64(next))
 }
 
 func (bormDb *BormDb) createIndex(tableId uint32, item IRow, txn *badger.Txn, next uint64) error {
