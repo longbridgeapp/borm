@@ -67,17 +67,7 @@ func (bormDb *BormDb) Discard(tx *badger.Txn) {
 
 //CreateTable
 func (bormDb *BormDb) CreateTable(row IRow) error {
-	tableName := row.GetTableName()
-	seq, err := bormDb.db.GetSequence(encodeSeqKey(tableName), 1<<30)
-	if err != nil {
-		return err
-	}
-	err = bormDb.tableManager.CreateTable(row, seq)
-	if err != nil {
-		seq.Release()
-		return err
-	}
-	return nil
+	return bormDb.tableManager.CreateTable(row, bormDb.db)
 }
 
 //Single Insert

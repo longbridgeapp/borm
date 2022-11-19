@@ -8,8 +8,8 @@ const (
 	segment byte = ':'
 )
 
-func encodeSeqKey(tableName string) []byte {
-	return []byte(fmt.Sprintf("t:seq:%v", tableName))
+func encodeSeqKey(id uint32) []byte {
+	return []byte(fmt.Sprintf("t:seq:%v", id))
 }
 
 func encodePKey(id uint32, pk_no uint64) []byte {
