@@ -1,11 +1,12 @@
 package borm
 
 import (
-	"github.com/longbridgeapp/borm/common"
 	"fmt"
 	"math/big"
 	"sort"
 	"time"
+
+	"github.com/longbridgeapp/borm/common"
 
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/elliotchance/orderedmap/v2"
@@ -207,7 +208,7 @@ func (c *BaseCompoundCondition[T]) queryRowIds(txn *badger.Txn, db *BormDb) ([]u
 
 func (c *BaseCompoundCondition[T]) exec(txn *badger.Txn, db *BormDb) ([]T, error) {
 
-	//start := time.Now()
+	start := time.Now()
 
 	ids, err := c.queryRowIds(txn, db)
 	if err != nil {
@@ -219,7 +220,7 @@ func (c *BaseCompoundCondition[T]) exec(txn *badger.Txn, db *BormDb) ([]T, error
 	} else {
 		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	}
-	//db.db.Opts().Logger.Infof("[%v][rows:%v]", time.Since(start), len(ids))
+	db.optConfig.Logger.Infof("[%v][rows:%v]", time.Since(start), len(ids))
 	results := []T{}
 	err = db.TxQueryWithPk(txn, c.row, ids, func(row IRow) error {
 		results = append(results, row.(T))
