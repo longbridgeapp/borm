@@ -97,6 +97,7 @@ func insert(db *borm.BormDb) {
 		Age:         30,
 		Gender:      definition.Gender_men,
 	}
+	//insert into account  values ('jacky','330683199212122018','+8613575468007','China',30,0)
 	db.Insert(account)
 }
 ```
