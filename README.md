@@ -103,6 +103,7 @@ func insert(db *borm.BormDb) {
 #### Delete Record
 ```go
 func delete(db *borm.BormDb) {
+	//delete from account where id=1
 	db.Delete(1, &definition.Account{})
 }
 ```
@@ -117,7 +118,7 @@ func update(db *borm.BormDb) {
 		Age:         32,
 		Gender:      definition.Gender_men,
 	}
-
+	//update account set Name='jacky',IdentityId='330683199212122018',PhoneNumber='+8613575468007',Country='China',Age=32,Gender=0 where id=1
 	db.Update(1, account)
 }
 ```
