@@ -172,7 +172,7 @@ func TestUnionIndex(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, id, uint64(i+1))
 
-				err = db.TxDelete(txn, &pb.AccountInfo{Id: id})
+				err = db.TxDelete(txn, id, &pb.AccountInfo{})
 				require.NoError(t, err)
 			}
 
@@ -486,7 +486,7 @@ func TestConcurrentUpdate(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					err = db.TxUpdate(tx, results[0], &pb.Person{
+					err = db.TxUpdate(tx, results[0].Id, &pb.Person{
 						Name:     "jacky",
 						Phone:    "13575468007",
 						Age:      results[0].Age + 1,
@@ -512,7 +512,7 @@ func TestConcurrentUpdate(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					err = db.TxUpdate(tx, results[0], &pb.Person{
+					err = db.TxUpdate(tx, results[0].Id, &pb.Person{
 						Name:     "jacky",
 						Phone:    "13575468007",
 						Age:      results[0].Age + 1,
@@ -779,7 +779,7 @@ func TestDelete(t *testing.T) {
 		require.EqualValues(t, len(results), 3)
 
 		for i := 0; i < len(results); i++ {
-			err = db.Delete(results[i])
+			err = db.Delete(results[i].Id, &pb.Person{})
 			require.NoError(t, err)
 		}
 
@@ -830,13 +830,13 @@ func TestUpdate(t *testing.T) {
 			Age:   29,
 		}, results[1])
 
-		err = db.Update(results[0], &pb.Person{
+		err = db.Update(results[0].Id, &pb.Person{
 			Name:  "jacky",
 			Phone: "13575468007",
 			Age:   35,
 		})
 		require.NoError(t, err)
-		err = db.Update(results[1], &pb.Person{
+		err = db.Update(results[1].Id, &pb.Person{
 			Name:  "jim",
 			Phone: "15088434234",
 			Age:   34,
@@ -865,21 +865,21 @@ func TestUpdate(t *testing.T) {
 			Age:   34,
 		}, results[1])
 
-		err = db.Update(results[0], &pb.Person{
+		err = db.Update(results[0].Id, &pb.Person{
 			Name:  "jacky",
 			Phone: "15088434234",
 			Age:   35,
 		})
 		require.ErrorIs(t, err, ErrIdxUniqueConflict)
 
-		err = db.Update(results[1], &pb.Person{
+		err = db.Update(results[1].Id, &pb.Person{
 			Name:  "jim",
 			Phone: "15088434235",
 			Age:   34,
 		})
 		require.NoError(t, err)
 
-		err = db.Update(results[0], &pb.Person{
+		err = db.Update(results[0].Id, &pb.Person{
 			Name:  "jacky",
 			Phone: "15088434234",
 			Age:   35,
@@ -927,9 +927,7 @@ func TestUpdate(t *testing.T) {
 
 		for i := 0; i < len(results); i++ {
 			results[i].BirthDay = 19921016
-			err := db.Update(&pb.Person{
-				Id: results[i].Id,
-			}, results[i])
+			err := db.Update(results[i].Id, results[i])
 			require.NoError(t, err)
 		}
 

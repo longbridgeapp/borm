@@ -60,9 +60,7 @@ func BenchmarkDelete(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		err := db.Delete(&pb.Account{
-			Id: uint64(i) + 1,
-		})
+		err := db.Delete(uint64(i)+1, &pb.Account{})
 		if err != nil {
 			b.Fatal(err)
 		}

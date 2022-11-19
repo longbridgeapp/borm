@@ -20,6 +20,35 @@ func main() {
 	log.Printf("table snoop:%+v", info)
 }
 
+func insert(db *borm.BormDb) {
+	account := &definition.Account{
+		Name:        "jacky",
+		IdentityId:  "330683199212122018",
+		PhoneNumber: "+8613575468007",
+		Country:     "China",
+		Age:         30,
+		Gender:      definition.Gender_men,
+	}
+	db.Insert(account)
+}
+
+func delete(db *borm.BormDb) {
+	db.Delete(1, &definition.Account{})
+}
+
+func update(db *borm.BormDb) {
+	account := &definition.Account{
+		Name:        "jacky",
+		IdentityId:  "330683199212122018",
+		PhoneNumber: "+8613575468007",
+		Country:     "China",
+		Age:         32,
+		Gender:      definition.Gender_men,
+	}
+
+	db.Update(1, account)
+}
+
 func uqIndexQuery(db *borm.BormDb) {
 	account, err := borm.First(db, borm.WithAnd(&definition.Account{}).Eq("IdentityId", "330683199212122018"))
 	if err != nil {

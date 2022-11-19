@@ -127,12 +127,12 @@ func OrderFilled(db *borm.BormDb, aaid uint64, accountChannel string, orderId st
 		newAccount.StockBooks["ST/HK/700"] = &pb.Detail{}
 		newAccount.StockBooks["ST/HK/700"].OutStanding = "10"
 
-		err = db.TxUpdate(tx, orders[0], newOrder)
+		err = db.TxUpdate(tx, orders[0].Id, newOrder)
 		if err != nil {
 			return err
 		}
 
-		err = db.TxUpdate(tx, accountInfos[0], newAccount)
+		err = db.TxUpdate(tx, accountInfos[0].Id, newAccount)
 		if err != nil {
 			return err
 		}
