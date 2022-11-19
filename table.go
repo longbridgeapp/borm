@@ -38,7 +38,7 @@ func (t *TableManager) GetTableId(tableName string) (uint32, error) {
 	return v.(uint32), nil
 }
 
-func (t *TableManager) CreateTable(tp IRow, seq *badger.Sequence) error {
+func (t *TableManager) CreateTable(tp IRow, db *badger.DB) error {
 	tableName := tp.GetTableName()
 	if _, err := t.GetTableId(tableName); err == nil {
 		return ErrTableRepeat
@@ -85,6 +85,11 @@ func (t *TableManager) CreateTable(tp IRow, seq *badger.Sequence) error {
 	t.tables.Store(tableName, tableId)
 	t.indexTags.Store(tableId, tapMap)
 	t.unionTags.Store(tableId, unionIndexSlice)
+
+	seq, err := db.GetSequence(encodeSeqKey(tableId), 1<<30)
+	if err != nil {
+		return err
+	}
 	seq.Next()
 	t.tableSeqs.Store(tableId, seq)
 	return nil

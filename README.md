@@ -58,56 +58,68 @@ func main() {
 ### Custom initialization
 #### Index Based Query
 ```go
-//unique index query
-func indexQuery(db *borm.BormDb) {
-    //select * from account where IdentityId='330683199212122018' limit 1
-	account, err := borm.First(db, borm.WithAnd(&definition.Account{}).Eq("IdentityId", "330683199212122018"))
-	if err != nil {
-		log.Fatal(err)
+//select * from account where IdentityId='330683199212122018' limit 1
+borm.First(db, borm.WithAnd(&definition.Account{}).Eq("IdentityId", "330683199212122018"))
+```
+```go
+ //select * from account where Name='jacky' and Age=30
+ borm.Find(db, borm.WithAnd(&definition.Account{}).Eq("Name", "jacky").Eq("Age", uint32(30)))
+```
+
+```go
+ss := [][]any{}
+ss = append(ss, []any{"jack"}, []any{"rose"})
+//select * from account where Name in('jack','rose')
+accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).In([string{"Name"}, ss))
+```
+```go
+ss = [][]any{}
+ss = append(ss, []any{"jack", "US"}, []any{"rose", "UK"})
+//select * from account where (Name,Country) in(('jack','US'),('rose','UK'))
+accounts, err = borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Name", "Country"}, ss))
+```
+```go
+ss := [][]any{}
+ss = append(ss, []any{30}, []any{31}, []any{32}, []any{33}, []any{34})
+//select * from account where Age in(30,31,32,33,34) and Country='China' order by Age limit 100
+accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Age"}, ss).Eq("Country","China").SortBy(true, "Age").Limit(0, 100))
+```
+
+
+#### Insert Record
+```go
+func insert(db *borm.BormDb) {
+	account := &definition.Account{
+		Name:        "jacky",
+		IdentityId:  "330683199212122018",
+		PhoneNumber: "+8613575468007",
+		Country:     "China",
+		Age:         30,
+		Gender:      definition.Gender_men,
 	}
-	log.Printf("account info:%+v", account)
+	//insert into account values ('jacky','330683199212122018','+8613575468007','China',30,0)
+	db.Insert(account)
 }
-
-//normal index query
-func normalIndexQuery(db *borm.BormDb) {
-    //select * from account where Name='jacky' and Age=30
-	accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).Eq("Name", "jacky").Eq("Age", uint32(30)))
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("accounts info:%+v", accounts)
+```
+#### Delete Record
+```go
+func delete(db *borm.BormDb) {
+	//delete from account where id=1
+	db.Delete(1, &definition.Account{})
 }
-
-//union index query
-func inQuery(db *borm.BormDb) {
-	ss := [][]any{}
-	ss = append(ss, []any{"jack"}, []any{"rose"})
-	//select * from account where Name in('jack','rose')
-	accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Name"}, ss))
-	if err != nil {
-		log.Fatal(err)
+```
+#### Update Record
+```go
+func update(db *borm.BormDb) {
+	account := &definition.Account{
+		Name:        "jacky",
+		IdentityId:  "330683199212122018",
+		PhoneNumber: "+8613575468007",
+		Country:     "China",
+		Age:         32,
+		Gender:      definition.Gender_men,
 	}
-	log.Printf("accounts info:%+v", accounts)
-
-	ss = [][]any{}
-	ss = append(ss, []any{"jack", "US"}, []any{"rose", "UK"})
-	//select * from account where Name in(('jack','US'),('rose','UK'))
-	accounts, err = borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Name", "Country"}, ss))
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("accounts info:%+v", accounts)
+	//update account set Name='jacky',IdentityId='330683199212122018',PhoneNumber='+8613575468007',Country='China',Age=32,Gender=0 where id=1
+	db.Update(1, account)
 }
-
-func multipleConditionQuery(db *borm.BormDb) {
-	ss := [][]any{}
-	ss = append(ss, []any{30}, []any{31}, []any{32}, []any{33}, []any{34})
-	//select * from account where Age in(30,31,32,33,34) and Country='China' order by Age limit 100
-	accounts, err := borm.Find(db, borm.WithAnd(&definition.Account{}).In([]string{"Age"}, ss).Eq("Country", "China").SortBy(true, "Age").Limit(0, 100))
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("accounts info:%+v", accounts)
-}
-
 ```

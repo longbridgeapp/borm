@@ -67,17 +67,7 @@ func (bormDb *BormDb) Discard(tx *badger.Txn) {
 
 //CreateTable
 func (bormDb *BormDb) CreateTable(row IRow) error {
-	tableName := row.GetTableName()
-	seq, err := bormDb.db.GetSequence(encodeSeqKey(tableName), 1<<30)
-	if err != nil {
-		return err
-	}
-	err = bormDb.tableManager.CreateTable(row, seq)
-	if err != nil {
-		seq.Release()
-		return err
-	}
-	return nil
+	return bormDb.tableManager.CreateTable(row, bormDb.db)
 }
 
 //Single Insert
@@ -143,21 +133,17 @@ func (bormDb *BormDb) TxBatchInsert(txn *badger.Txn, rows []IRow) error {
 	return nil
 }
 
-func (bormDb *BormDb) Delete(row IRow) error {
+func (bormDb *BormDb) Delete(rowId uint64, row IRow) error {
 	err := bormDb.db.Update(func(txn *badger.Txn) error {
-		return bormDb.TxDelete(txn, row)
+		return bormDb.TxDelete(txn, rowId, row)
 	})
 	if err == badger.ErrConflict {
-		return bormDb.Delete(row)
+		return bormDb.Delete(rowId, row)
 	}
 	return err
 }
 
-func (bormDb *BormDb) TxDelete(tx *badger.Txn, row IRow) error {
-	rowId := common.GetUint64(row)
-	if rowId == 0 {
-		return ErrRowIdIllegal
-	}
+func (bormDb *BormDb) TxDelete(tx *badger.Txn, rowId uint64, row IRow) error {
 	tableName := row.GetTableName()
 	tableId, err := bormDb.tableManager.GetTableId(tableName)
 	if err != nil {
@@ -168,8 +154,9 @@ func (bormDb *BormDb) TxDelete(tx *badger.Txn, row IRow) error {
 	if err != nil {
 		return err
 	}
+	tpl := row.Clone().(IRow)
 	err = item.Value(func(val []byte) error {
-		return row.Unmarshal(val)
+		return tpl.Unmarshal(val)
 	})
 	if err != nil {
 		return err
@@ -178,23 +165,23 @@ func (bormDb *BormDb) TxDelete(tx *badger.Txn, row IRow) error {
 	if err != nil {
 		return err
 	}
-	return bormDb.deleteIndex(tableId, row, tx)
+	return bormDb.deleteIndex(tableId, tpl, tx)
 }
 
 //Update
-func (bormDb *BormDb) Update(oldRow, newRow IRow) error {
+func (bormDb *BormDb) Update(rowId uint64, newRow IRow) error {
 	err := bormDb.db.Update(func(txn *badger.Txn) error {
-		return bormDb.TxUpdate(txn, oldRow, newRow)
+		return bormDb.TxUpdate(txn, rowId, newRow)
 	})
 	if err == badger.ErrConflict {
 		bormDb.db.Opts().Logger.Warningf("Txn Update conflict,%v\n", newRow)
-		return bormDb.Update(oldRow, newRow)
+		return bormDb.Update(rowId, newRow)
 	}
 	return err
 }
 
-func (bormDb *BormDb) TxUpdate(tx *badger.Txn, oldRow, newRow IRow) error {
-	err := bormDb.TxDelete(tx, oldRow)
+func (bormDb *BormDb) TxUpdate(tx *badger.Txn, rowId uint64, newRow IRow) error {
+	err := bormDb.TxDelete(tx, rowId, newRow)
 	if err != nil {
 		return err
 	}
