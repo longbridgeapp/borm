@@ -12,7 +12,7 @@ import (
 )
 
 func runNewBorm(t *testing.T, test func(*testing.T, *BormDb)) {
-	db, err := New()
+	db, err := New(WithQueryAnalyzer(true))
 	require.NoError(t, err)
 	test(t, db)
 	require.NoError(t, db.Close())
@@ -363,43 +363,47 @@ func TestConcurrent(t *testing.T) {
 			wait := sync.WaitGroup{}
 			wait.Add(3)
 			go func() {
+				defer wait.Done()
 				for i := 0; i < 10; i++ {
-					db.Insert(&pb.Person{
+					err := db.Insert(&pb.Person{
 						Name:     "a_jacky",
 						Phone:    fmt.Sprintf("+%d", i),
 						Age:      uint32(i),
 						BirthDay: 19901111,
 						Gender:   pb.Gender_men,
 					})
+					fmt.Println(err)
 				}
-				defer wait.Done()
 			}()
 			go func() {
+				defer wait.Done()
 				for i := 0; i < 10; i++ {
-					db.Insert(&pb.Person{
+					err := db.Insert(&pb.Person{
 						Name:     "b_jacky",
 						Phone:    fmt.Sprintf("+%d", i),
 						Age:      uint32(i),
 						BirthDay: 19921111,
 						Gender:   pb.Gender_men,
 					})
+					fmt.Println(err)
 
 				}
-				defer wait.Done()
+
 			}()
 
 			go func() {
+				defer wait.Done()
 				for i := 0; i < 10; i++ {
-					db.Insert(&pb.Person{
+					err := db.Insert(&pb.Person{
 						Name:     "c_jacky",
 						Phone:    fmt.Sprintf("+%d", i),
 						Age:      uint32(i),
 						BirthDay: 19921111,
 						Gender:   pb.Gender_men,
 					})
+					fmt.Println(err)
 
 				}
-				defer wait.Done()
 			}()
 			wait.Wait()
 			detail, err := db.Snoop(&pb.Person{})

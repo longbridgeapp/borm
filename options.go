@@ -5,11 +5,13 @@ type Options struct {
 	Logger Logger
 	// default size 512MB
 	MemTableSize int64
+	// default false
+	QueryAnalyzer bool
 }
 
 type Option func(*Options)
 
-func newOptions(ops ...Option) *Options {	
+func newOptions(ops ...Option) *Options {
 	opt := &Options{
 		Logger:       defaultLogger(WARNING),
 		MemTableSize: (64 << 20) * 8,
@@ -29,5 +31,11 @@ func WithLoggingLevel(val loggingLevel) Option {
 func WithMemTableSize(val int64) Option {
 	return func(o *Options) {
 		o.MemTableSize = val
+	}
+}
+
+func WithQueryAnalyzer(val bool) Option {
+	return func(o *Options) {
+		o.QueryAnalyzer = val
 	}
 }
