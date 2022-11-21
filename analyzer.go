@@ -11,10 +11,10 @@ func queryAnalyzer[T IRow](c *BaseCompoundCondition[T]) string {
 
 	for _, key := range c.fieldValueMap.Keys() {
 		element := c.fieldValueMap.GetElement(key)
-		sql += fmt.Sprintf("%v=%v AND ", element.Key, element.Value)
+		sql += fmt.Sprintf("%s=%v AND ", element.Key, element.Value)
 	}
 	for _, v := range c.inFilterConditions {
-		sql += fmt.Sprintf("(%v) IN (%v) AND ", strings.Join(v.fieldNames, ","), v.values)
+		sql += fmt.Sprintf("(%s) IN (%v) AND ", strings.Join(v.fieldNames, ","), v.values)
 	}
 
 	sql = strings.TrimRight(sql, "AND ")
@@ -25,7 +25,7 @@ func queryAnalyzer[T IRow](c *BaseCompoundCondition[T]) string {
 	}
 
 	if len(c.sortKey) > 0 {
-		sql += fmt.Sprintf(" ORDER BY %v %s", strings.Join(c.sortKey, ","), order)
+		sql += fmt.Sprintf(" ORDER BY %s %s", strings.Join(c.sortKey, ","), order)
 	} else {
 		sql += fmt.Sprintf(" ORDER BY id %s", order)
 	}

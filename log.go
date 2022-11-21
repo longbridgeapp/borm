@@ -63,7 +63,7 @@ type defaultLog struct {
 }
 
 func defaultLogger(level loggingLevel) *defaultLog {
-	return &defaultLog{Logger: log.New(os.Stderr, "borm ", log.LstdFlags), level: level}
+	return &defaultLog{Logger: log.New(os.Stderr, "", log.LstdFlags), level: level}
 }
 
 func (l *defaultLog) Errorf(f string, v ...interface{}) {

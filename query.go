@@ -87,3 +87,5 @@ func TxLast[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T
 	}
 	return results[0], nil
 }
+
+
