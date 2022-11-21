@@ -11,7 +11,7 @@ type Logger interface {
 	Warningf(string, ...interface{})
 	Infof(string, ...interface{})
 	Debugf(string, ...interface{})
-
+	Printf(f string, v ...interface{})
 	GetLogLevel() loggingLevel
 }
 
@@ -68,28 +68,31 @@ func defaultLogger(level loggingLevel) *defaultLog {
 
 func (l *defaultLog) Errorf(f string, v ...interface{}) {
 	if l.level <= ERROR {
-		l.Printf("ERROR: "+f, v...)
+		l.Logger.Printf("ERROR: "+f, v...)
 	}
 }
 
 func (l *defaultLog) Warningf(f string, v ...interface{}) {
 	if l.level <= WARNING {
-		l.Printf("WARNING: "+f, v...)
+		l.Logger.Printf("WARNING: "+f, v...)
 	}
 }
 
 func (l *defaultLog) Infof(f string, v ...interface{}) {
 	if l.level <= INFO {
-		l.Printf("INFO: "+f, v...)
+		l.Logger.Printf("INFO: "+f, v...)
 	}
 }
 
 func (l *defaultLog) Debugf(f string, v ...interface{}) {
 	if l.level <= DEBUG {
-		l.Printf("DEBUG: "+f, v...)
+		l.Logger.Printf("DEBUG: "+f, v...)
 	}
 }
 
+func (l *defaultLog) Printf(f string, v ...interface{}) {
+	l.Logger.Printf("PRINT: "+f, v...)
+}
 func (l *defaultLog) GetLogLevel() loggingLevel {
 	return l.level
 }

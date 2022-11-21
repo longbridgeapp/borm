@@ -34,6 +34,8 @@ type BaseCompoundCondition[T IRow] struct {
 	offset    int
 	limit     int
 	validated bool
+
+	rows int
 }
 
 func DefaultBaseCompoundCondition[T IRow](row IRow) *BaseCompoundCondition[T] {
@@ -208,8 +210,12 @@ func (c *BaseCompoundCondition[T]) queryRowIds(txn *badger.Txn, db *BormDb) ([]u
 
 func (c *BaseCompoundCondition[T]) exec(txn *badger.Txn, db *BormDb) ([]T, error) {
 
-	start := time.Now()
-
+	if db.optConfig.QueryAnalyzer {
+		start := time.Now()
+		defer func() {
+			db.optConfig.Logger.Printf("[%v][%s][rows:%v]", time.Since(start), queryAnalyzer(c), c.rows)
+		}()
+	}
 	ids, err := c.queryRowIds(txn, db)
 	if err != nil {
 		return nil, err
@@ -220,7 +226,6 @@ func (c *BaseCompoundCondition[T]) exec(txn *badger.Txn, db *BormDb) ([]T, error
 	} else {
 		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	}
-	db.optConfig.Logger.Infof("[%v][rows:%v]", time.Since(start), len(ids))
 	results := []T{}
 	err = db.TxQueryWithPk(txn, c.row, ids, func(row IRow) error {
 		results = append(results, row.(T))
@@ -247,6 +252,7 @@ func (c *BaseCompoundCondition[T]) getStartAndEndRange(len int) (startIndex, end
 	if c.limit > 0 && limitIndex <= len {
 		endIndex = limitIndex
 	}
+	c.rows = endIndex - startIndex
 	return startIndex, endIndex
 }
 
