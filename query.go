@@ -39,24 +39,26 @@ func First[T IRow](db *BormDb, condition ICompoundConditions[T]) (T, error) {
 		if err != nil {
 			return err
 		}
-		if result != nil {
-			t = result.(T)
-		}
+		t = result
 		return nil
 	})
 	return t, err
 }
 
-func TxFirst[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T]) (IRow, error) {
+func TxFirst[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T]) (T, error) {
+	var (
+		t T
+	)
 	condition = condition.Limit(0, 1)
 	results, err := condition.exec(txn, db)
 	if err != nil {
-		return nil, err
+		return t, err
 	}
 	if len(results) == 0 {
-		return nil, ErrKeyNotFound
+		return t, ErrKeyNotFound
 	}
-	return results[0], nil
+	t = results[0]
+	return t, nil
 }
 
 func Last[T IRow](db *BormDb, condition ICompoundConditions[T]) (T, error) {
@@ -68,24 +70,24 @@ func Last[T IRow](db *BormDb, condition ICompoundConditions[T]) (T, error) {
 		if err != nil {
 			return err
 		}
-		if result != nil {
-			t = result.(T)
-		}
+		t = result
 		return nil
 	})
 	return t, err
 }
 
-func TxLast[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T]) (IRow, error) {
+func TxLast[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T]) (T, error) {
+	var (
+		t T
+	)
 	condition = condition.SortBy(true).Limit(0, 1)
 	results, err := condition.exec(txn, db)
 	if err != nil {
-		return nil, err
+		return t, err
 	}
 	if len(results) == 0 {
-		return nil, ErrKeyNotFound
+		return t, ErrKeyNotFound
 	}
-	return results[0], nil
+	t = results[0]
+	return t, nil
 }
-
-
