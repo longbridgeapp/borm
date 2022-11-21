@@ -12,7 +12,7 @@ import (
 )
 
 func runNewBorm(t *testing.T, test func(*testing.T, *BormDb)) {
-	db, err := New(WithQueryAnalyzer(true))
+	db, err := New()
 	require.NoError(t, err)
 	test(t, db)
 	require.NoError(t, db.Close())

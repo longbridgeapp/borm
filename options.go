@@ -5,7 +5,7 @@ type Options struct {
 	Logger Logger
 	// default size 512MB
 	MemTableSize int64
-	// default false
+	// default true
 	QueryAnalyzer bool
 }
 
@@ -13,8 +13,9 @@ type Option func(*Options)
 
 func newOptions(ops ...Option) *Options {
 	opt := &Options{
-		Logger:       defaultLogger(WARNING),
-		MemTableSize: (64 << 20) * 8,
+		Logger:        defaultLogger(WARNING),
+		MemTableSize:  (64 << 20) * 8,
+		QueryAnalyzer: true,
 	}
 	for _, o := range ops {
 		o(opt)
