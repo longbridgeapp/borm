@@ -123,3 +123,26 @@ func update(db *borm.BormDb) {
 	db.Update(1, account)
 }
 ```
+#### Transaction
+```go
+func transaction(db *borm.BormDb) {
+	//transaction begin
+	tx := db.Begin(true)
+
+	//query record
+	account, err := borm.TxFirst(tx, db, borm.WithAnd(&definition.Account{}).Eq("IdentityId", "330683199212122018"))
+	if err != nil {
+		tx.Discard()
+		return
+	}
+	account.Age++
+	//update record
+	err = db.TxUpdate(tx, account.Id, account)
+	if err != nil {
+		tx.Discard()
+		return
+	}
+	//transaction commit
+	tx.Commit()
+}
+```
