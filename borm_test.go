@@ -1410,7 +1410,7 @@ func TestLimit(t *testing.T) {
 	})
 }
 
-func TestCount(t *testing.T) {
+func TestDbCount(t *testing.T) {
 	t.Run("normal index check", func(t *testing.T) {
 		runNewBorm(t, func(t *testing.T, db *BormDb) {
 			err := db.CreateTable(&pb.AccountInfo{})

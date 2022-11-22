@@ -27,7 +27,7 @@ func Find[T IRow](db *BormDb, condition ICompoundConditions[T]) ([]T, error) {
 }
 
 func TxFind[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T]) ([]T, error) {
-	return condition.exec(txn, db)
+	return condition.query(txn, db)
 }
 
 func First[T IRow](db *BormDb, condition ICompoundConditions[T]) (T, error) {
@@ -50,7 +50,7 @@ func TxFirst[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[
 		t T
 	)
 	condition = condition.Limit(0, 1)
-	results, err := condition.exec(txn, db)
+	results, err := condition.query(txn, db)
 	if err != nil {
 		return t, err
 	}
@@ -81,7 +81,7 @@ func TxLast[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T
 		t T
 	)
 	condition = condition.SortBy(true).Limit(0, 1)
-	results, err := condition.exec(txn, db)
+	results, err := condition.query(txn, db)
 	if err != nil {
 		return t, err
 	}
@@ -90,4 +90,23 @@ func TxLast[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T
 	}
 	t = results[0]
 	return t, nil
+}
+
+func Count[T IRow](db *BormDb, condition ICompoundConditions[T]) (int, error) {
+	var (
+		count int
+		err   error
+	)
+	err = db.View(func(txn *badger.Txn) error {
+		count, err = TxCount(txn, db, condition)
+		return err
+	})
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func TxCount[T IRow](txn *badger.Txn, db *BormDb, condition ICompoundConditions[T]) (int, error) {
+	return condition.count(txn, db)
 }

@@ -17,7 +17,8 @@ type ICompoundConditions[T IRow] interface {
 	In(fieldNames []string, values [][]any) ICompoundConditions[T]
 	SortBy(reversed bool, sortKey ...string) ICompoundConditions[T]
 	Limit(offset, limit int) ICompoundConditions[T]
-	exec(txn *badger.Txn, db *BormDb) ([]T, error)
+	query(txn *badger.Txn, db *BormDb) ([]T, error)
+	count(txn *badger.Txn, db *BormDb) (int, error)
 }
 
 type inFilterCondition struct {
@@ -208,8 +209,7 @@ func (c *BaseCompoundCondition[T]) queryRowIds(txn *badger.Txn, db *BormDb) ([]u
 	return queryResults, nil
 }
 
-func (c *BaseCompoundCondition[T]) exec(txn *badger.Txn, db *BormDb) ([]T, error) {
-
+func (c *BaseCompoundCondition[T]) query(txn *badger.Txn, db *BormDb) ([]T, error) {
 	if db.optConfig.QueryAnalyzer {
 		start := time.Now()
 		defer func() {
@@ -240,6 +240,21 @@ func (c *BaseCompoundCondition[T]) exec(txn *badger.Txn, db *BormDb) ([]T, error
 	}
 	startIndex, endIndex := c.getStartAndEndRange(len(results))
 	return results[startIndex:endIndex], nil
+}
+
+func (c *BaseCompoundCondition[T]) count(txn *badger.Txn, db *BormDb) (int, error) {
+	if db.optConfig.QueryAnalyzer {
+		start := time.Now()
+		defer func() {
+			db.optConfig.Logger.Printf("[%v][%s][rows:%v]", time.Since(start), countAnalyzer(c), c.rows)
+		}()
+	}
+	ids, err := c.queryRowIds(txn, db)
+	if err != nil {
+		return 0, err
+	}
+	c.getStartAndEndRange(len(ids))
+	return c.rows, nil
 }
 
 func (c *BaseCompoundCondition[T]) getStartAndEndRange(len int) (startIndex, endIndex int) {
