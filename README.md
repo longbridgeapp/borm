@@ -55,6 +55,19 @@ func main() {
 }
 ```
 
+### SQL Query Analyzer
+if enabled QueryAnalyzer, borm support print query analyzer, most of the time like:
+```sql
+2022/12/12 20:30:42 PRINT: [6.903µs][SELECT * FROM AccountInfo WHERE Aaid=10999 AND AccountChannel=lb ORDER BY id ASC][rows:1]
+2022/12/12 20:30:42 PRINT: [4.933µs][SELECT * FROM AccountInfo WHERE Aaid=10005 AND AccountChannel=lb_sg ORDER BY id ASC][rows:0]
+2022/12/12 20:30:42 PRINT: [82.985µs][SELECT * FROM AccountInfo WHERE Aaid=10005 ORDER BY id ASC][rows:1]
+2022/12/12 20:30:42 PRINT: [4.2272ms][SELECT * FROM AccountInfo WHERE AccountChannel=lb ORDER BY id ASC][rows:1000]
+2022/12/12 20:30:42 PRINT: [17.638µs][SELECT * FROM AccountInfo WHERE AccountChannel=lb AND Aaid=10005 ORDER BY id ASC][rows:1]
+2022/12/12 20:30:42 PRINT: [8.89µs][SELECT * FROM AccountInfo WHERE Aaid=10005 AND AccountChannel=lb ORDER BY id ASC][rows:1]
+2022/12/12 20:30:42 PRINT: [119ns][SELECT * FROM AccountInfo WHERE Aaid=10005 ORDER BY id ASC][rows:0]
+2022/12/12 20:30:42 PRINT: [63ns][SELECT * FROM AccountInfo WHERE AccountChannel=lb AND Aaid=10005 ORDER BY id ASC][rows:0]
+```
+
 ### Custom initialization
 #### Index Based Query
 ```go
